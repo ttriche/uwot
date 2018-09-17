@@ -18,14 +18,15 @@
 # }
 #
 Progress <- setRefClass("Progress",
-  fields = list(value = "numeric",
-                max = "numeric",
-                curr_stars = "numeric",
-                max_stars = "numeric",
-                display = "logical"),
+  fields = list(
+    value = "numeric",
+    max = "numeric",
+    curr_stars = "numeric",
+    max_stars = "numeric",
+    display = "logical"
+  ),
   methods = list(
     initialize = function(max, display = TRUE) {
-
       max_stars <<- 51 # length of the progress bar
       value <<- 0
       curr_stars <<- 0
@@ -44,7 +45,8 @@ Progress <- setRefClass("Progress",
           # Number of new stars to print
           num_new_stars <- num_stars - curr_stars
 
-          # If we are going to reach the end of the progress bar, save space for the terminal "|"
+          # If we are going to reach the end of the progress bar
+          # save space for the terminal "|"
           if (curr_stars + num_new_stars >= max_stars) {
             num_new_stars <- num_new_stars - 1
           }

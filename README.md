@@ -1,36 +1,18 @@
 # UWOT
 
-[![Travis-CI Build Status](https://travis-ci.org/jlmelville/uwot.svg?branch=master)](https://travis-ci.org/jlmelville/uwot) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jlmelville/uwot?branch=master&svg=true)](https://ci.appveyor.com/project/jlmelville/uwot)
+[![Travis-CI Build Status](https://travis-ci.org/jlmelville/uwot.svg?branch=master)](https://travis-ci.org/jlmelville/uwot) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jlmelville/uwot?branch=master&svg=true)](https://ci.appveyor.com/project/jlmelville/uwot) [![Coverage Status](https://img.shields.io/codecov/c/github/jlmelville/uwot/master.svg)](https://codecov.io/github/jlmelville/uwot?branch=master)
 
 An R implementation of the 
 [Uniform Manifold Approximation and Projection (UMAP)](https://arxiv.org/abs/1802.03426) 
-method for dimensionality reduction (McInnes and Healy, 2018).
+method for dimensionality reduction (McInnes and Healy, 2018), that also 
+implements the supervised and metric (out-of-sample) learning extensions to
+the basic method.
 
 ## News
 
-*July 31 2018*. (Very) initial support for supervised dimension reduction:
-categorical data only at the moment. Pass in a factor vector (use `NA` for
-unknown labels) as the `y` parameter and edges with bad (or unknown) labels are
-down-weighted, hopefully leading to better separation of classes. This works
-remarkably well for the Fashion MNIST dataset. An easy way to try this:
-
-```R
-devtools::install_github("jlmelville/snedata")
-devtools::install_github("jlmelville/vizier")
-
-fashion <- snedata::download_fashion_mnist(verbose = TRUE)
-
-fashion_umap <- umap(fashion)
-fashion_sumap <- umap(fashion, y = fashion$Label)
-
-vizier::embed_plot(fashion_umap, fashion, title = "UMAP")
-vizier::embed_plot(fashion_sumap, fashion, title = "Supervised UMAP")
-```
-
-*July 22 2018*. You can now use the cosine and Manhattan distances with the
-Annoy nearest neighbor search, via `metric = "cosine"` and `metric =
-"manhattan"`, respectively. Hamming distance is not supported because RcppAnnoy
-doesn't yet support it.
+*August 14 2018*. I had broken `metric = cosine` for all cases except when
+specifying `n_threads = 0`. Thanks to [ONeillMB1](https://github.com/ONeillMB1) 
+for reporting this.
 
 ## Installing
 
@@ -62,14 +44,27 @@ mnist_umap_cosine <- umap(n_neighbors = 15, metric = "cosine", min_dist = 0.001,
 # Supervised dimension reduction
 mnist_umap_s <- umap(n_neighbors = 15, min_dist = 0.001, verbose = TRUE, n_threads = 8, 
                      y = mnist$Label, target_weight = 0.5)
+                    
+# Add new points to an existing embedding
+mnist_train <- head(mnist, 60000)
+mnist_test <- tail(mnist, 70000)
+
+# You must set ret_model = TRUE to return extra data we need
+mnist_train_umap <- umap(mnist_train, verbose = TRUE, ret_model = TRUE)
+mnist_test_umap <- umap_transform(mnist_test, mnist_train_umap, verbose = TRUE)
 ```
 
 ## Documentation
 
-Apart from the man pages in R, there is a page 
-[describing UMAP](https://jlmelville.github.io/uwot/umap-for-tsne.html) using
-terminology similar to t-SNE, rather than the more topological approach of the
-UMAP publication.
+Apart from the man pages in R: you may be interested in:
+
+* A [description of UMAP](https://jlmelville.github.io/uwot/umap-for-tsne.html)
+using algorithmic terminology similar to t-SNE, rather than the more topological
+approach of the UMAP publication.
+* [Examples](https://jlmelville.github.io/uwot/umap-examples.html) of the 
+output of UMAP on some datasets, compared to t-SNE.
+* How to use UMAP for 
+[Supervised and Metric Learning](https://jlmelville.github.io/uwot/metric-learning.html)
 
 ## Implementation Details
 
@@ -203,8 +198,12 @@ fails to converge it will fall back to random initialization, but on occasion
 I've seen it take an extremely long time (a couple of hours) to converge. If
 initialization is taking more than a few minutes, I suggest stopping the 
 calculation and using the scaled PCA (`init = "spca"`) instead.
-* `R CMD check` currently reports two notes: `GNU make is a SystemRequirements.`,
-which is expected and due to using RcppParallel.
+* For supervised dimensionality reduction using a numeric vector, only the
+Euclidean distance is supported for building the target graph.
+* `R CMD check` currently reports the following note: 
+`GNU make is a SystemRequirements.`, which is expected and due to using 
+RcppParallel. On Linux, it sometimes notes that the `libs` sub-directory is over
+1 MB. I am unsure if this is anything to worry about.
 
 ## Other Methods
 
